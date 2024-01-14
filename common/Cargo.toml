@@ -1,0 +1,9 @@
+[package]
+name = "common"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+embassy-time = "0.3.0"
+embedded-hal = "1.0.0"
