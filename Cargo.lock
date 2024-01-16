@@ -121,6 +121,7 @@ dependencies = [
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "embassy-sync",
  "embassy-time",
  "embedded-hal 1.0.0",
 ]
@@ -884,7 +885,9 @@ dependencies = [
  "common",
  "cortex-m-rt",
  "embassy-executor",
+ "embassy-futures",
  "embassy-rp",
+ "embassy-sync",
  "panic-halt",
 ]
 
