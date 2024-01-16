@@ -31,10 +31,7 @@
           # export all crates (packages and devshell) in flake outputs
           # alternatively you can access the outputs and export them yourself
           export = true;
-          # targets.thumbv6m-none-eabi.default = true;
         };
-        # nci.crates.pico.targets.thumbv6m-none-eabi.default = true;
-        nci.toolchainConfig = (lib.importTOML ./toolchain.toml).toolchain;
         # export the project devshell as the default devshell
         devShells.default = outputs.morse.devShell.overrideAttrs (old: {packages = (old.packges or []) ++ extraPackages;});
       };
