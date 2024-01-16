@@ -232,3 +232,11 @@ impl<Pin: OutputPin<Error = Infallible>> Flasher for EmbassyFlasher<Pin> {
         }
     }
 }
+
+pub async fn run(mut flasher: EmbassyFlasher<impl OutputPin<Error = Infallible>>) {
+    loop {
+        flasher.flash_string(b"Hello world").await;
+        flasher.now += 10 * TIME_UNIT;
+        Timer::at(flasher.now).await;
+    }
+}
