@@ -8,6 +8,7 @@ license.workspace = true
 common = { version = "0.1.0", path = "../common" }
 cortex-m-rt = "0.7.3"
 embassy-executor = { version = "0.5.0", features = ["arch-cortex-m", "nightly", "executor-thread", "integrated-timers"] }
+embassy-futures = "0.1.1"
 embassy-rp = { version = "0.1.0", features = ["critical-section-impl", "time-driver"] }
 embassy-sync = "0.5.0"
 panic-halt = "0.2.0"
