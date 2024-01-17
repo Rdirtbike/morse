@@ -9,6 +9,5 @@ common = { version = "0.1.0", path = "../common" }
 embassy-executor = { version = "0.5.0", features = ["arch-riscv32", "nightly", "executor-thread", "integrated-timers"] }
 embassy-futures = "0.1.1"
 embassy-sync = "0.5.0"
-embedded-io-async = "0.6.1"
 esp32c3-hal = { version = "0.14.0", features = ["async", "embassy", "embassy-time-timg0", "eh1"] }
 panic-halt = "0.2.0"

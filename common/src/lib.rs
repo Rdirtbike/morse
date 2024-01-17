@@ -5,6 +5,7 @@ use core::{convert::Infallible, future::Future};
 use embassy_sync::{blocking_mutex::raw::RawMutex, channel::Channel};
 use embassy_time::{Duration, Instant, Timer};
 use embedded_hal::digital::OutputPin;
+use embedded_io_async::Read;
 
 const TIME_UNIT: Duration = Duration::from_millis(200);
 
@@ -249,5 +250,14 @@ pub async fn flash_from_channel<M: RawMutex, const N: usize>(
         // Wait for the time between flashes.
         now += TIME_UNIT;
         Timer::at(now).await;
+    }
+}
+
+pub async fn read_and_queue(mut queue: impl Queue, mut reader: impl Read) {
+    let mut buf = [b'0'; 64];
+    loop {
+        if let Ok(n) = reader.read(&mut buf).await {
+            queue.queue_string(&buf[..n]).await;
+        }
     }
 }
