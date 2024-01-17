@@ -23,7 +23,7 @@
         # shorthand for accessing outputs
         # you can access crate outputs under `config.nci.outputs.<crate name>` (see documentation)
         outputs = config.nci.outputs;
-        extraPackages = with pkgs; [elf2uf2-rs rust-analyzer];
+        extraPackages = with pkgs; [elf2uf2-rs rust-analyzer cargo-espflash];
       in {
         # declare projects
         nci.projects.morse = {
