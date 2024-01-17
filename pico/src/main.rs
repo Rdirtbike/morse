@@ -2,24 +2,26 @@
 #![no_std]
 #![no_main]
 
-use common::{flash_from_channel, run_queue};
-use embassy_executor::{main, Spawner};
-use embassy_futures::join::join;
+use common::{flash_from_channel, run_queue, MorseCode};
+use embassy_executor::{main, task, Spawner};
 use embassy_rp::{
     config::Config,
     gpio::{Level, Output},
     init,
 };
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use panic_halt as _;
 
+static QUEUE: Channel<CriticalSectionRawMutex, MorseCode, 100> = Channel::new();
+
 #[main]
-async fn main(_spawner: Spawner) {
+async fn main(spawner: Spawner) {
     let peripherals = init(Config::default());
-    let queue: Channel<NoopRawMutex, _, 100> = Channel::new();
-    join(
-        run_queue(&mut &queue),
-        flash_from_channel(&queue, Output::new(peripherals.PIN_25, Level::Low)),
-    )
-    .await;
+    spawner.spawn(sender()).unwrap_or_else(|_| unreachable!());
+    flash_from_channel(&QUEUE, Output::new(peripherals.PIN_25, Level::Low)).await;
+}
+
+#[task]
+async fn sender() {
+    run_queue(&mut &QUEUE).await
 }
