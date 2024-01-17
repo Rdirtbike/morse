@@ -1,7 +1,10 @@
 [workspace]
-members = ["common", "pico"]
+members = ["common", "pico", "esp32c3-morse"]
 resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+
+[patch.crates-io]
+esp32c3-hal.git = "https://github.com/esp-rs/esp-hal.git"
