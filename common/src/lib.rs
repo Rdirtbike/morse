@@ -210,7 +210,7 @@ impl<M: RawMutex, const N: usize> Queue for &Channel<M, MorseCode, N> {
     }
 }
 
-pub async fn run_queue(queue: &mut impl Queue) {
+pub async fn run_queue(mut queue: impl Queue) {
     loop {
         queue.queue_string(b"Hello world").await;
     }

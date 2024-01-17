@@ -18,7 +18,7 @@ async fn main(_spawner: Spawner) {
     let peripherals = init(Config::default());
     let queue: Channel<NoopRawMutex, _, 100> = Channel::new();
     join(
-        run_queue(&mut &queue),
+        run_queue(&queue),
         flash_from_channel(&queue, Output::new(peripherals.PIN_25, Level::Low)),
     )
     .await;
