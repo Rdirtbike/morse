@@ -1164,7 +1164,6 @@ dependencies = [
  "common",
  "cortex-m-rt",
  "embassy-executor",
- "embassy-futures",
  "embassy-rp",
  "embassy-sync 0.5.0",
  "embassy-usb",

@@ -2,18 +2,18 @@
 #![no_std]
 #![no_main]
 
-use common::{flash_from_channel, read_and_queue};
-use embassy_executor::{main, task, Spawner};
-use embassy_futures::join::join;
+use common::{flash_from_channel, read_and_queue, MorseCode};
+use cortex_m_rt::entry;
+use embassy_executor::{task, Executor, Spawner};
 use embassy_rp::{
     bind_interrupts,
     config::Config,
     gpio::{Level, Output},
     init,
-    peripherals::USB,
+    peripherals::{PIN_25, USB},
     usb::{Driver, InterruptHandler},
 };
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
+use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel};
 use embassy_usb::{
     class::cdc_acm::{CdcAcmClass, State},
     driver::EndpointError,
@@ -23,23 +23,29 @@ use embedded_io_async::{Error, ErrorKind, ErrorType, Read};
 use panic_halt as _;
 use static_cell::make_static;
 
+static QUEUE: Channel<ThreadModeRawMutex, MorseCode, 100> = Channel::new();
+
 bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => InterruptHandler<USB>;
 });
 
-#[main]
-async fn main(spawner: Spawner) -> ! {
+#[entry]
+fn main() -> ! {
     let peripherals = init(Config::default());
-    let queue: Channel<NoopRawMutex, _, 100> = Channel::new();
-    join(
-        read_and_queue(
-            &queue,
-            Usb::new(Driver::new(peripherals.USB, Irqs), spawner),
-        ),
-        flash_from_channel(&queue, Output::new(peripherals.PIN_25, Level::Low)),
-    )
-    .await
-    .1
+    make_static!(Executor::new()).run(move |s| {
+        s.must_spawn(queue(Usb::new(Driver::new(peripherals.USB, Irqs), s)));
+        s.must_spawn(flash(Output::new(peripherals.PIN_25, Level::Low)));
+    })
+}
+
+#[task]
+async fn queue(usb: Usb) -> ! {
+    read_and_queue(&QUEUE, usb).await
+}
+
+#[task]
+async fn flash(pin: Output<'static, PIN_25>) -> ! {
+    flash_from_channel(&QUEUE, pin).await
 }
 
 struct Usb {
