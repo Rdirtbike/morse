@@ -11,4 +11,8 @@ embassy-executor = { version = "0.5.0", features = ["arch-cortex-m", "nightly", 
 embassy-futures = "0.1.1"
 embassy-rp = { version = "0.1.0", features = ["critical-section-impl", "time-driver", "intrinsics", "rom-v2-intrinsics", "rom-func-cache", "boot2-w25q080"] }
 embassy-sync = "0.5.0"
+embassy-usb = "0.1.0"
+embedded-io-async = "0.6.1"
 panic-halt = "0.2.0"
+portable-atomic = { version = "1.6.0", default-features = false, features = ["critical-section"] }
+static_cell = { version = "2.0.0", features = ["nightly"] }
