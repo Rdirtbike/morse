@@ -3,16 +3,16 @@
 #![feature(type_alias_impl_trait)]
 
 use common::{flash_from_channel, read_and_queue};
-use embassy_executor::{main, Spawner};
+use embassy_executor::Spawner;
 use embassy_futures::join::join;
 use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
 use esp32c3_hal::{
-    clock::ClockControl, embassy::init, peripherals::Peripherals, system::SystemExt,
-    timer::TimerGroup, UsbSerialJtag, IO,
+    clock::ClockControl, embassy::init, entry, macros::main, peripherals::Peripherals,
+    system::SystemExt, timer::TimerGroup, UsbSerialJtag, IO,
 };
 use panic_halt as _;
 
-#[main(entry = "esp32c3_hal::entry")]
+#[main]
 async fn main(_spawner: Spawner) {
     let peripherals = Peripherals::take();
     let clocks = ClockControl::boot_defaults(peripherals.SYSTEM.split().clock_control).freeze();

@@ -6,8 +6,8 @@ license.workspace = true
 
 [dependencies]
 common = { version = "0.1.0", path = "../common" }
-embassy-executor = { version = "0.5.0", features = ["arch-riscv32", "nightly", "executor-thread", "integrated-timers"] }
+embassy-executor = { version = "0.5.0", features = ["arch-riscv32", "nightly"] }
 embassy-futures = "0.1.1"
 embassy-sync = "0.5.0"
-esp32c3-hal = { version = "0.15.0", features = ["async", "embassy", "embassy-time-timg0"] }
+esp32c3-hal = { version = "0.15.0", features = ["async", "embassy-executor-thread", "embassy-time-timg0"] }
 panic-halt = "0.2.0"
