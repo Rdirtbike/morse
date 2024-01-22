@@ -13,7 +13,7 @@ use esp32c3_hal::{
 use panic_halt as _;
 
 #[main]
-async fn main(_spawner: Spawner) {
+async fn main(_spawner: Spawner) -> ! {
     let peripherals = Peripherals::take();
     let clocks = ClockControl::boot_defaults(peripherals.SYSTEM.split().clock_control).freeze();
     let queue: Channel<NoopRawMutex, _, 100> = Channel::new();
@@ -28,5 +28,6 @@ async fn main(_spawner: Spawner) {
                 .into_push_pull_output(),
         ),
     )
-    .await;
+    .await
+    .1
 }

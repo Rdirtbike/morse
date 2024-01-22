@@ -28,7 +28,7 @@ bind_interrupts!(struct Irqs {
 });
 
 #[main]
-async fn main(spawner: Spawner) {
+async fn main(spawner: Spawner) -> ! {
     let peripherals = init(Config::default());
     let queue: Channel<NoopRawMutex, _, 100> = Channel::new();
     join(
@@ -38,7 +38,8 @@ async fn main(spawner: Spawner) {
         ),
         flash_from_channel(&queue, Output::new(peripherals.PIN_25, Level::Low)),
     )
-    .await;
+    .await
+    .1
 }
 
 struct Usb {

@@ -211,7 +211,7 @@ impl<M: RawMutex, const N: usize> Queue for &Channel<M, MorseCode, N> {
     }
 }
 
-pub async fn run_queue(mut queue: impl Queue) {
+pub async fn run_queue(mut queue: impl Queue) -> ! {
     loop {
         queue.queue_string(b"Hello world").await;
     }
@@ -220,7 +220,7 @@ pub async fn run_queue(mut queue: impl Queue) {
 pub async fn flash_from_channel<M: RawMutex, const N: usize>(
     channel: &Channel<M, MorseCode, N>,
     mut pin: impl OutputPin<Error = Infallible>,
-) {
+) -> ! {
     let mut now = Instant::now();
     loop {
         // Get next code, reset time if we have to wait.
@@ -253,7 +253,7 @@ pub async fn flash_from_channel<M: RawMutex, const N: usize>(
     }
 }
 
-pub async fn read_and_queue(mut queue: impl Queue, mut reader: impl Read) {
+pub async fn read_and_queue(mut queue: impl Queue, mut reader: impl Read) -> ! {
     let mut buf = [b'0'; 64];
     loop {
         if let Ok(n) = reader.read(&mut buf).await {
