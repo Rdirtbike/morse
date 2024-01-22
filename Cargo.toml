@@ -5,6 +5,3 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-
-[patch.crates-io]
-esp32c3-hal.git = "https://github.com/esp-rs/esp-hal.git"

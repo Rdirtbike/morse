@@ -17,7 +17,7 @@ async fn main(_spawner: Spawner) {
     let peripherals = Peripherals::take();
     let clocks = ClockControl::boot_defaults(peripherals.SYSTEM.split().clock_control).freeze();
     let queue: Channel<NoopRawMutex, _, 100> = Channel::new();
-    init(&clocks, TimerGroup::new(peripherals.TIMG0, &clocks).timer0);
+    init(&clocks, TimerGroup::new(peripherals.TIMG0, &clocks));
     join(
         read_and_queue(&queue, UsbSerialJtag::new(peripherals.USB_DEVICE)),
         flash_from_channel(
