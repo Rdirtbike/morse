@@ -3,14 +3,13 @@
 #![no_main]
 
 use common::{flash_from_channel, read_and_queue, MorseCode};
-use cortex_m_rt::entry;
-use embassy_executor::{task, Executor, Spawner};
+use embassy_executor::{main, task, Spawner};
 use embassy_rp::{
     bind_interrupts,
     config::Config,
     gpio::{Level, Output},
     init,
-    peripherals::{PIN_25, USB},
+    peripherals::USB,
     usb::{Driver, InterruptHandler},
 };
 use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel};
@@ -29,23 +28,16 @@ bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => InterruptHandler<USB>;
 });
 
-#[entry]
-fn main() -> ! {
+#[main]
+async fn main(spawner: Spawner) -> ! {
     let peripherals = init(Config::default());
-    make_static!(Executor::new()).run(move |s| {
-        s.must_spawn(queue(Usb::new(Driver::new(peripherals.USB, Irqs), s)));
-        s.must_spawn(flash(Output::new(peripherals.PIN_25, Level::Low)));
-    })
+    spawner.must_spawn(queue(Usb::new(Driver::new(peripherals.USB, Irqs), spawner)));
+    flash_from_channel(&QUEUE, Output::new(peripherals.PIN_25, Level::Low)).await
 }
 
 #[task]
 async fn queue(usb: Usb) -> ! {
     read_and_queue(&QUEUE, usb).await
-}
-
-#[task]
-async fn flash(pin: Output<'static, PIN_25>) -> ! {
-    flash_from_channel(&QUEUE, pin).await
 }
 
 struct Usb {
@@ -96,7 +88,7 @@ impl Read for Usb {
 struct MyError(EndpointError);
 
 impl Error for MyError {
-    fn kind(&self) -> embedded_io_async::ErrorKind {
+    fn kind(&self) -> ErrorKind {
         match self.0 {
             EndpointError::BufferOverflow => ErrorKind::OutOfMemory,
             EndpointError::Disabled => ErrorKind::NotConnected,
