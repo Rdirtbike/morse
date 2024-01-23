@@ -708,7 +708,6 @@ version = "0.1.0"
 dependencies = [
  "common",
  "embassy-executor",
- "embassy-futures",
  "embassy-sync 0.5.0",
  "esp32c3-hal",
  "panic-halt",

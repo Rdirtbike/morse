@@ -2,32 +2,34 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
-use common::{flash_from_channel, read_and_queue};
-use embassy_executor::Spawner;
-use embassy_futures::join::join;
-use embassy_sync::{blocking_mutex::raw::NoopRawMutex, channel::Channel};
+use common::{flash_from_channel, read_and_queue, MorseCode};
+use embassy_executor::{task, Spawner};
+use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Channel};
 use esp32c3_hal::{
     clock::ClockControl, embassy::init, entry, macros::main, peripherals::Peripherals,
     system::SystemExt, timer::TimerGroup, UsbSerialJtag, IO,
 };
 use panic_halt as _;
 
+static QUEUE: Channel<CriticalSectionRawMutex, MorseCode, 100> = Channel::new();
+
 #[main]
-async fn main(_spawner: Spawner) -> ! {
+async fn main(spawner: Spawner) -> ! {
     let peripherals = Peripherals::take();
     let clocks = ClockControl::boot_defaults(peripherals.SYSTEM.split().clock_control).freeze();
-    let queue: Channel<NoopRawMutex, _, 100> = Channel::new();
     init(&clocks, TimerGroup::new(peripherals.TIMG0, &clocks));
-    join(
-        read_and_queue(&queue, UsbSerialJtag::new(peripherals.USB_DEVICE)),
-        flash_from_channel(
-            &queue,
-            IO::new(peripherals.GPIO, peripherals.IO_MUX)
-                .pins
-                .gpio7
-                .into_push_pull_output(),
-        ),
+    spawner.must_spawn(queue(UsbSerialJtag::new(peripherals.USB_DEVICE)));
+    flash_from_channel(
+        &QUEUE,
+        IO::new(peripherals.GPIO, peripherals.IO_MUX)
+            .pins
+            .gpio7
+            .into_push_pull_output(),
     )
     .await
-    .1
+}
+
+#[task]
+async fn queue(usb: UsbSerialJtag<'static>) -> ! {
+    read_and_queue(&QUEUE, usb).await
 }
