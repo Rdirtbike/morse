@@ -6,6 +6,7 @@ use common::{flash_from_channel, read_and_queue, MorseCode};
 use embassy_executor::{main, task, Spawner};
 use embassy_rp::{
     bind_interrupts,
+    clocks::{ClockConfig, SysClkConfig, SysClkSrc},
     config::Config,
     gpio::{Level, Output},
     init,
@@ -19,7 +20,7 @@ use embassy_usb::{
     Builder, UsbDevice,
 };
 use embedded_io_async::{Error, ErrorKind, ErrorType, Read};
-use panic_halt as _;
+use panic_write as _;
 use static_cell::make_static;
 
 static QUEUE: Channel<ThreadModeRawMutex, MorseCode, 100> = Channel::new();
@@ -30,7 +31,23 @@ bind_interrupts!(struct Irqs {
 
 #[main]
 async fn main(spawner: Spawner) -> ! {
-    let peripherals = init(Config::default());
+    let peripherals = init(Config::new({
+        let mut clocks = ClockConfig::crystal(12_000_000);
+        clocks.rosc = None;
+        clocks.peri_clk_src = None;
+        clocks.adc_clk = None;
+        clocks.rtc_clk = None;
+        clocks.ref_clk.div = 2;
+        clocks.sys_clk = SysClkConfig {
+            src: SysClkSrc::Ref,
+            div_int: 0,
+            div_frac: 0,
+        };
+        for xosc in clocks.xosc.iter_mut() {
+            xosc.sys_pll = None;
+        }
+        clocks
+    }));
     spawner.must_spawn(queue(Usb::new(Driver::new(peripherals.USB, Irqs), spawner)));
     flash_from_channel(&QUEUE, Output::new(peripherals.PIN_25, Level::Low)).await
 }

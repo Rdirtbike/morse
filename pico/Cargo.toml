@@ -12,6 +12,6 @@ embassy-rp = { version = "0.1.0", features = ["critical-section-impl", "time-dri
 embassy-sync = "0.5.0"
 embassy-usb = "0.1.0"
 embedded-io-async = "0.6.1"
-panic-halt = "0.2.0"
+panic-write = "0.1.0"
 portable-atomic = { version = "1.6.0", default-features = false, features = ["critical-section"] }
 static_cell = { version = "2.0.0", features = ["nightly"] }

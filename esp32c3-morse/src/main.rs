@@ -9,7 +9,7 @@ use esp32c3_hal::{
     clock::ClockControl, embassy::init, entry, macros::main, peripherals::Peripherals,
     system::SystemExt, timer::TimerGroup, UsbSerialJtag, IO,
 };
-use panic_halt as _;
+use esp_backtrace as _;
 
 static QUEUE: Channel<CriticalSectionRawMutex, MorseCode, 100> = Channel::new();
 
