@@ -1,9 +1,9 @@
 [build]
-rustflags = ["-C", "link-arg=-Tlinkall.x"]
+rustflags = ["-C", "link-arg=-Tlinkall.x", "-C", "link-arg=-Tdefmt.x"]
 target = "riscv32imc-unknown-none-elf"
 
 [target.riscv32imc-unknown-none-elf]
-runner = "espflash flash --monitor"
+runner = "espflash flash --monitor --log-format=defmt"
 
 [unstable]
 build-std = ["core"]
