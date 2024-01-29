@@ -6,7 +6,7 @@ use common::{flash_from_channel, read_and_queue, MorseCode};
 use embassy_executor::{main, task, Spawner};
 use embassy_rp::{
     bind_interrupts,
-    clocks::{ClockConfig, SysClkConfig, SysClkSrc},
+    clocks::{ClockConfig, SysClkSrc},
     config::Config,
     gpio::{Level, Output},
     init,
@@ -20,7 +20,7 @@ use embassy_usb::{
     Builder, UsbDevice,
 };
 use embedded_io_async::{Error, ErrorKind, ErrorType, Read};
-use panic_write as _;
+use panic_halt as _;
 use static_cell::make_static;
 
 static QUEUE: Channel<ThreadModeRawMutex, MorseCode, 100> = Channel::new();
@@ -37,12 +37,8 @@ async fn main(spawner: Spawner) -> ! {
         clocks.peri_clk_src = None;
         clocks.adc_clk = None;
         clocks.rtc_clk = None;
-        clocks.ref_clk.div = 2;
-        clocks.sys_clk = SysClkConfig {
-            src: SysClkSrc::Ref,
-            div_int: 0,
-            div_frac: 0,
-        };
+        clocks.ref_clk.div = 4;
+        clocks.sys_clk.src = SysClkSrc::PllUsb;
         for xosc in clocks.xosc.iter_mut() {
             xosc.sys_pll = None;
         }
