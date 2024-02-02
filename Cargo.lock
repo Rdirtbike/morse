@@ -761,6 +761,8 @@ dependencies = [
  "common",
  "embassy-executor",
  "embassy-sync 0.5.0",
+ "embedded-hal-async",
+ "embedded-io-async",
  "esp-backtrace",
  "esp32c3-hal",
 ]
