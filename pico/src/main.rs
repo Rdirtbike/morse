@@ -39,7 +39,7 @@ async fn main(spawner: Spawner) -> ! {
         clocks.rtc_clk = None;
         clocks.ref_clk.div = 4;
         clocks.sys_clk.src = SysClkSrc::PllUsb;
-        for xosc in clocks.xosc.iter_mut() {
+        if let Some(xosc) = &mut clocks.xosc {
             xosc.sys_pll = None;
         }
         clocks
