@@ -3,6 +3,8 @@
 #![no_main]
 
 use common::{flash_from_channel, read_and_queue, MorseCode};
+use core::{fmt::Write, mem, panic::PanicInfo, slice};
+use cortex_m::interrupt;
 use embassy_executor::{main, task, Spawner};
 use embassy_rp::{
     bind_interrupts,
@@ -10,7 +12,12 @@ use embassy_rp::{
     config::Config,
     gpio::{Level, Output},
     init,
+    pac::{
+        xosc::vals::{CtrlFreqRange, Enable},
+        XIP_CTRL, XOSC,
+    },
     peripherals::USB,
+    rom_data::reset_to_usb_boot,
     usb::{Driver, InterruptHandler},
 };
 use embassy_sync::{blocking_mutex::raw::ThreadModeRawMutex, channel::Channel};
@@ -20,7 +27,6 @@ use embassy_usb::{
     Builder, UsbDevice,
 };
 use embedded_io_async::{Error, ErrorKind, ErrorType, Read};
-use panic_halt as _;
 use static_cell::make_static;
 
 static QUEUE: Channel<ThreadModeRawMutex, MorseCode, 100> = Channel::new();
@@ -112,4 +118,51 @@ impl Error for MyError {
 #[task]
 async fn run_usb(mut usb: UsbDevice<'static, Driver<'static, USB>>) -> ! {
     usb.run().await
+}
+
+struct Cursor<'a>(&'a mut [u8]);
+
+impl<'a> Write for Cursor<'a> {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        let bytes = s.as_bytes();
+        let len = bytes.len();
+        if len < self.0.len() {
+            let (a, b) = mem::take(&mut self.0).split_at_mut(len);
+            a.copy_from_slice(bytes);
+            self.0 = b;
+            Ok(())
+        } else {
+            Err(core::fmt::Error)
+        }
+    }
+}
+
+#[panic_handler]
+fn handle_panic(panic_info: &PanicInfo) -> ! {
+    interrupt::disable();
+
+    XIP_CTRL.ctrl().write(|reg| {
+        reg.set_power_down(false);
+        reg.set_en(false);
+    });
+
+    _ = write!(
+        Cursor(unsafe { slice::from_raw_parts_mut(0x1500_0000 as *mut u8, 0x4000) }),
+        "{}\n\0",
+        panic_info
+    );
+
+    if !XOSC.status().read().stable() {
+        XOSC.startup()
+            .write(|reg| reg.set_delay((12_000 + 128) / 256));
+        XOSC.ctrl().write(|reg| {
+            reg.set_freq_range(CtrlFreqRange::_1_15MHZ);
+            reg.set_enable(Enable::ENABLE);
+        });
+        while !XOSC.status().read().stable() {}
+    }
+
+    loop {
+        reset_to_usb_boot(1 << 25, 0);
+    }
 }
