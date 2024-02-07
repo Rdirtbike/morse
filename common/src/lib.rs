@@ -185,6 +185,7 @@ pub trait Queue {
                 b' ' => {
                     self.queue_code(MorseCode::Space).await;
                 }
+                4 => panic!("End of user transmission"),
                 _ => {}
             }
         }
