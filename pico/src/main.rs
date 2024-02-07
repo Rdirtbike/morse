@@ -3,9 +3,15 @@
 #![no_main]
 
 use common::{flash_from_channel, read_and_queue, MorseCode};
-use core::{fmt::Write, mem, panic::PanicInfo, slice};
+use core::{
+    fmt::Write,
+    mem::{self, MaybeUninit},
+    panic::PanicInfo,
+    slice,
+};
 use cortex_m::interrupt;
-use embassy_executor::{main, task, Spawner};
+use cortex_m_rt::entry;
+use embassy_executor::{task, Executor, Spawner};
 use embassy_rp::{
     bind_interrupts,
     clocks::{ClockConfig, SysClkSrc},
@@ -16,7 +22,7 @@ use embassy_rp::{
         xosc::vals::{CtrlFreqRange, Enable},
         XIP_CTRL, XOSC,
     },
-    peripherals::USB,
+    peripherals::{PIN_25, USB},
     rom_data::reset_to_usb_boot,
     usb::{Driver, InterruptHandler},
 };
@@ -27,7 +33,6 @@ use embassy_usb::{
     Builder, UsbDevice,
 };
 use embedded_io_async::{Error, ErrorKind, ErrorType, Read};
-use static_cell::make_static;
 
 static QUEUE: Channel<ThreadModeRawMutex, MorseCode, 100> = Channel::new();
 
@@ -35,8 +40,11 @@ bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => InterruptHandler<USB>;
 });
 
-#[main]
-async fn main(spawner: Spawner) -> ! {
+#[entry]
+fn main() -> ! {
+    static mut EXECUTOR: MaybeUninit<Executor> = MaybeUninit::uninit();
+    static mut USB_STATE: UsbState = UsbState::new();
+
     let peripherals = init(Config::new({
         let mut clocks = ClockConfig::crystal(12_000_000);
         clocks.rosc = None;
@@ -50,13 +58,43 @@ async fn main(spawner: Spawner) -> ! {
         }
         clocks
     }));
-    spawner.must_spawn(queue(Usb::new(Driver::new(peripherals.USB, Irqs), spawner)));
-    flash_from_channel(&QUEUE, Output::new(peripherals.PIN_25, Level::Low)).await
+
+    EXECUTOR.write(Executor::new()).run(move |spawner| {
+        spawner.must_spawn(queue(Usb::new(peripherals.USB, spawner, USB_STATE)));
+        spawner.must_spawn(flash(peripherals.PIN_25));
+    })
+}
+
+#[task]
+async fn flash(pin: PIN_25) -> ! {
+    flash_from_channel(&QUEUE, Output::new(pin, Level::Low)).await
 }
 
 #[task]
 async fn queue(usb: Usb) -> ! {
     read_and_queue(&QUEUE, usb).await
+}
+
+struct UsbState {
+    device_descriptor: [u8; 256],
+    config_descriptor: [u8; 256],
+    bos_descriptor: [u8; 256],
+    msos_descriptor: [u8; 256],
+    control_buf: [u8; 64],
+    state: MaybeUninit<State<'static>>,
+}
+
+impl UsbState {
+    const fn new() -> Self {
+        Self {
+            device_descriptor: [0; 256],
+            config_descriptor: [0; 256],
+            bos_descriptor: [0; 256],
+            msos_descriptor: [0; 256],
+            control_buf: [0; 64],
+            state: MaybeUninit::uninit(),
+        }
+    }
 }
 
 struct Usb {
@@ -77,17 +115,17 @@ impl Usb {
         config
     };
 
-    fn new(driver: Driver<'static, USB>, spawner: Spawner) -> Self {
+    fn new(usb: USB, spawner: Spawner, state: &'static mut UsbState) -> Self {
         let mut builder = Builder::new(
-            driver,
+            Driver::new(usb, Irqs),
             Self::CONFIG,
-            make_static!([0; 256]),
-            make_static!([0; 256]),
-            make_static!([0; 256]),
-            make_static!([0; 256]),
-            make_static!([0; 64]),
+            &mut state.device_descriptor,
+            &mut state.config_descriptor,
+            &mut state.bos_descriptor,
+            &mut state.msos_descriptor,
+            &mut state.control_buf,
         );
-        let serial = CdcAcmClass::new(&mut builder, make_static!(State::new()), 64);
+        let serial = CdcAcmClass::new(&mut builder, state.state.write(State::new()), 64);
         spawner.must_spawn(run_usb(builder.build()));
         Self { serial }
     }
